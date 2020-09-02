@@ -1,6 +1,6 @@
 import time
 
-from config import CommonConf
+from common.config import CommonConf
 
 
 class CommonUtil(object):
@@ -42,7 +42,35 @@ class CommonUtil(object):
         bcc = '0' + bcc if len(bcc) == 1 else bcc
         return bcc
 
+    @staticmethod
+    def etcfee_to_hex(consume_money):
+        """
+        etc费用转hex,
+        :param consume_money: 消费金额
+        :return:
+        """
+        consume_money = int(consume_money * 100)
+        consume_money_hex = hex(consume_money)[2:]
+        zero_pad_num = 0 if (8 - len(consume_money_hex)) < 0 else (8 - len(consume_money_hex))
+        consume_money_hex = '0' * zero_pad_num + consume_money_hex
+        return consume_money_hex[-8:]
+
+    @staticmethod
+    def hex_to_etcfee(consume_money_hex):
+        """
+        hex转etc费用
+        :param consume_money_hex: etc费用的hex形式
+        :return:
+        """
+        consume_money = int(consume_money_hex, 16) / 100
+        return consume_money
+
 
 if __name__ == '__main__':
-    cur = CommonUtil.timestamp_format()
-    print(cur)
+    consume_money_hex = CommonUtil.etcfee_to_hex(999.99)
+    print(consume_money_hex)
+    consume_money = CommonUtil.hex_to_etcfee(consume_money_hex)
+    print(consume_money)
+
+    print(CommonUtil.hex_to_etcfee('fe01fe01'))
+    print(CommonUtil.hex_to_etcfee('ffffa579'))

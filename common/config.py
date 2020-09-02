@@ -1,4 +1,4 @@
-
+import os
 
 class CommonConf(object):
     # 电子标签一级分散因子，比如"万集万集"的十六进制 'CDF2BCAFCDF2BCAF'
@@ -11,3 +11,14 @@ class CommonConf(object):
     COMMAND_BEGIN_FLAG = 'ffff'
     # 指令结束标志
     COMMAND_END_FLAG = 'ff'
+    # 项目根目录
+    ROOT_DIR = os.path.realpath(__file__).rsplit('common')[0]
+    # 日志路径
+    LOG_DIR = os.path.join(ROOT_DIR, 'logs')
+    # 超时时间
+    TIME_OUT = 10
+
+
+
+if __name__ == '__main__':
+    pass
