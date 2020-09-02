@@ -1,19 +1,12 @@
 import uvicorn
-import time
-import threading
 from fastapi import FastAPI
-from fastapi.encoders import jsonable_encoder
-from func_timeout import func_set_timeout
-
 from model.obu_model import OBUModel
 from service.etc_toll import ETCToll
 
 app = FastAPI()
 
-
-@func_set_timeout(3)
-def f1():
-    time.sleep(20)
+# 引入模块路由
+# app.include_router(router=etc_router, prefix='/etc_router')
 
 
 @app.post("/etc-fee-deduction")
@@ -29,6 +22,11 @@ def etc_fee_deduction(body: OBUModel):
 @app.get('/hello/{name}')
 async def hello(name: str, age: int = 20):
     return {'name': name, 'age': age}
+
+
+@app.get('/')
+def head():
+    return dict(hello='world')
 
 
 if __name__ == '__main__':
