@@ -95,6 +95,7 @@ class CommandReceiveSet(object):
         self.info_b4['IssuerInfo'] = b4[40: 126]  # 卡片发行信息（速通卡0015文件内容）
         self.info_b4['LastStation'] = b4[126: 204]  # 上次过站信息（0012文件或0019文件内容）
         # TODO [204: 212]信息有待确认 文档解释 批注[zbh16]: 未包含二版密钥卡片保留的4字节
+        self.info_b4['aaaaaaaaaaa'] = b4[204: 212]
         self.info_b4['BCC'] = b4[212: 214]  # 异或校验值
         return self.info_b4
 
@@ -120,6 +121,18 @@ class CommandReceiveSet(object):
         self.info_b5['CardBalance'] = b5[74: 82]  # 交易后余额，高字节在前
         self.info_b5['BCC'] = b5[82: 84]  # 异或校验值
         return self.info_b5
+
+    def print_obu_info(self):
+        print('===================================================')
+        pprint(self.info_b0)
+        print('===================================================')
+        pprint(self.info_b2)
+        print('===================================================')
+        pprint(self.info_b3)
+        print('===================================================')
+        pprint(self.info_b4)
+        print('===================================================')
+        pprint(self.info_b5)
 
 
 if __name__ == '__main__':

@@ -1,6 +1,13 @@
+import binascii
+import os
 import time
+import random
+import string
+import zipfile
+import requests
 
 from common.config import CommonConf
+from datetime import datetime
 
 
 class CommonUtil(object):
@@ -14,6 +21,31 @@ class CommonUtil(object):
         """
         timeformat = time.strftime(format, time.localtime(timestamp))
         return timeformat
+
+    @staticmethod
+    def str_to_timestamp(timestr='20200904155900', format='%Y%m%d%H%M%S'):
+        """
+        字符串转时间戳
+        :param timestr:
+        :param format:
+        :return:
+        """
+        time_array = time.strptime(timestr, format)
+        timestamp = int(time.mktime(time_array))
+        return timestamp
+
+    @staticmethod
+    def timeformat_convert(timestr1='20200907094345', format1='%Y%m%d%H%M%S', format2='%Y-%m-%d %H:%M:%S'):
+        """
+        时间格式之间的转换
+        :param format1: 格式1
+        :param format2: 格式2
+        :return:
+        """
+        time_array1 = time.strptime(timestr1, format1)
+        timestamp1 = int(time.mktime(time_array1))
+        timestr2 = time.strftime(format2, time.localtime(timestamp1))
+        return timestr2
 
     @staticmethod
     def get_rsctl():
@@ -56,21 +88,126 @@ class CommonUtil(object):
         return consume_money_hex[-8:]
 
     @staticmethod
-    def hex_to_etcfee(consume_money_hex):
+    def hex_to_etcfee(consume_money_hex, unit='yuan'):
         """
         hex转etc费用
         :param consume_money_hex: etc费用的hex形式
         :return:
         """
-        consume_money = int(consume_money_hex, 16) / 100
+        if unit == 'yuan':
+            consume_money = int(consume_money_hex, 16) / 100
+        elif unit == 'fen':
+            consume_money = int(consume_money_hex, 16)
         return consume_money
+
+    @staticmethod
+    def random_str(num):
+        """
+        生成随机字符串
+        :param num: 字符串的个数
+        :return:
+        """
+        str_ = ''.join(random.sample(string.digits + string.ascii_uppercase, num))
+        return str_
+
+    @staticmethod
+    def yuan_to_fen(money:float) -> int:
+        """
+        将人民币由单位元转为分
+        :param money:
+        :return:
+        """
+        return int(money * 100)
+
+    @staticmethod
+    def time_difference(timestamp1, timestamp2):
+        """
+        计算时间差 timestamp2 - timestamp1
+        :param timestamp1: 时间戳1
+        :param timestamp2: 时间戳2
+        :return:
+        """
+        date1= datetime.fromtimestamp(timestamp1)
+        date2 = datetime.fromtimestamp(timestamp2)
+        time_diff = date2 - date1
+        days = time_diff.days
+        hours = time_diff.seconds // (60 * 60)
+        minutes = (time_diff.seconds % (60 * 60)) // 60
+        seconds = (time_diff.seconds % (60 * 60)) % 60
+        time_diff_str = '%d分%d秒' % (minutes, seconds)
+        if (days <= 0) and (hours > 0) :
+            time_diff_str = '%d小时%s' % (hours, time_diff_str)
+        elif days > 0:
+            time_diff_str = '%d天%d小时%s' % (days, hours, time_diff_str)
+        return time_diff_str
+
+    @staticmethod
+    def parse_plate_code(plate_code):
+        """
+        解析车牌号
+        :param plate_code: 车牌号，16进制形式 b2e241313233343500000000
+        :return:
+        """
+        return binascii.a2b_hex(plate_code).decode('gb2312').replace('\x00', '')
+
+    @staticmethod
+    def download_file(url, file_path, chunk_size=1024 * 4):
+        """
+        下载文件
+        :param url: 请求url
+        :param file_path: 文件路径
+        :param chunk_size: 按块下载
+        :return:
+        """
+        with requests.get(url, stream=True) as req:
+
+            with open(file_path, 'wb') as f:
+                for chunk in req.iter_content(chunk_size=chunk_size):
+                    if chunk:
+                        f.write(chunk)
+
+    @staticmethod
+    def unzipfile(src_file, dest_dir):
+        """
+        解压zip文件
+        :param src_file: 带解压的zip文件
+        :param dest_dir: 解压后的目标目录
+        :return:
+        """
+        zf = zipfile.ZipFile(src_file)
+        zf.extractall(dest_dir)
 
 
 if __name__ == '__main__':
-    consume_money_hex = CommonUtil.etcfee_to_hex(999.99)
-    print(consume_money_hex)
-    consume_money = CommonUtil.hex_to_etcfee(consume_money_hex)
-    print(consume_money)
-
-    print(CommonUtil.hex_to_etcfee('fe01fe01'))
-    print(CommonUtil.hex_to_etcfee('ffffa579'))
+    src_file = r'E:\lxw\project\tianxian-demo\database\10908198_GBCardBListIncre.cfg.zip'
+    dest_dir = os.path.join(CommonConf.ROOT_DIR, 'database')
+    CommonUtil.unzipfile(src_file, dest_dir)
+    # consume_money_hex = CommonUtil.etcfee_to_hex(999.99)
+    # print(consume_money_hex)
+    # consume_money = CommonUtil.hex_to_etcfee(consume_money_hex)
+    # print(consume_money)
+    #
+    # print(CommonUtil.hex_to_etcfee('fe01fe01'))
+    # print(CommonUtil.hex_to_etcfee('ffffa579'))
+    #
+    # ss = CommonUtil.random_str(8)
+    # print(ss)
+    # st1 = int(time.time())
+    # st2 = st1 + 3 * 24 * 60 * 60 + 2 * 60 * 60 + 3 * 60 + 5
+    # st2 = st1 + 3 * 24 * 60 * 60 + 5
+    # CommonUtil.time_difference(st1, st2)
+    # c = int(time.time())
+    # print(c)
+    # for _ in range(10):
+    #     # a = CommonUtil.timestamp_format(timestamp=c, format='%Y%m%d%H%M%S')
+    #     time.sleep(1)
+    #     a = CommonUtil.timestamp_format(int(time.time()))
+    #     print(a)
+    # b = CommonUtil.str_to_timestamp(a, format='%Y%m%d%H%M%S')
+    # print(b)
+    #
+    # c = CommonUtil.timeformat_convert(timestr1='20200907094345', format1='%Y%m%d%H%M%S', format2='%Y-%m-%d %H:%M:%S')
+    # print(c)
+    # plate_code = CommonUtil.parse_plate_code('b2e241313233343500000000')
+    # print(plate_code)
+    # print(CommonUtil.hex_to_etcfee('000026d6', unit='fen'))

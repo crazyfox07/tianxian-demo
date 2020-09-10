@@ -2,7 +2,10 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
+# database下的文件
+database/
+.idea/
+logs/
 # C extensions
 *.so
 
