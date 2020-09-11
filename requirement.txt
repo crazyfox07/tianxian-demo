@@ -5,3 +5,5 @@ SQLAlchemy
 pymysql
 pycryptodome
 apscheduler
+requests
+pyyaml

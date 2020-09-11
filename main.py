@@ -6,7 +6,6 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI
 
 from common.config import CommonConf
-from common.utils import CommonUtil
 from model.obu_model import OBUModel
 from service.etc_toll import ETCToll
 from service.third_etc_api import ThirdEtcApi
@@ -22,7 +21,7 @@ def init_scheduler():
     """初始化调度器"""
     job_sqlite_path = os.path.join(CommonConf.SQLITE_DIR, 'jobs.sqlite')
     # 每次启动任务时删除数据库
-    os.remove(job_sqlite_path)
+    os.remove(job_sqlite_path) if os.path.exists(job_sqlite_path) else None
     jobstores = {
         'default': SQLAlchemyJobStore(url='sqlite:///' + job_sqlite_path)  # SQLAlchemyJobStore指定存储链接
     }
@@ -33,8 +32,8 @@ def init_scheduler():
 
     scheduler.configure(jobstores=jobstores, executors=executors)
 
-    scheduler.add_job(ThirdEtcApi.my_job1, trigger='cron', second="*/2")
-    scheduler.add_job(ThirdEtcApi.my_job2, trigger='cron', second="*/5")
+    scheduler.add_job(ThirdEtcApi.my_job1, trigger='cron', minute="*/2")
+    scheduler.add_job(ThirdEtcApi.my_job2, trigger='cron', minute="*/5")
     # scheduler.add_job(ThirdEtcApi.download_blacklist_base, trigger='cron', hour='1')
     # scheduler.add_job(ThirdEtcApi.download_blacklist_incre, trigger='cron', hour='*/1')
     # scheduler.add_job(ThirdEtcApi.reupload_etc_deduct_from_db, trigger='cron', hour='*1')
@@ -60,4 +59,4 @@ def head():
 
 
 if __name__ == '__main__':
-    uvicorn.run(app="main:app", host="0.0.0.0", port=8001)
+    uvicorn.run(app="main:app", host="0.0.0.0", port=8002, workers=1)
