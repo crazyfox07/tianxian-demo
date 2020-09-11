@@ -66,7 +66,7 @@ class ETCToll(object):
                     # result['data'] = '交易成功'
                     data = dict(method='etcPayUpload',
                                 params=params, )
-                    logger.info('交易成功')
+                    logger.info('etc交易成功')
                     logger.info(json.dumps(data, ensure_ascii=False))
                 else:
                     result['errorMessage'] = '车牌号或车颜色不匹配'

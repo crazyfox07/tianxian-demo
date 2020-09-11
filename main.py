@@ -6,6 +6,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI
 
 from common.config import CommonConf
+from model.db_orm import init_db
 from model.obu_model import OBUModel
 from service.etc_toll import ETCToll
 from service.third_etc_api import ThirdEtcApi
@@ -14,6 +15,12 @@ app = FastAPI()
 
 # scheduler = AsyncIOScheduler()
 scheduler = BackgroundScheduler()
+
+
+@app.on_event('startup')
+def create_sqlite():
+    """数据库初始化"""
+    init_db()
 
 
 @app.on_event('startup')
@@ -32,11 +39,11 @@ def init_scheduler():
 
     scheduler.configure(jobstores=jobstores, executors=executors)
 
-    scheduler.add_job(ThirdEtcApi.my_job1, trigger='cron', minute="*/2")
-    scheduler.add_job(ThirdEtcApi.my_job2, trigger='cron', minute="*/5")
-    # scheduler.add_job(ThirdEtcApi.download_blacklist_base, trigger='cron', hour='1')
-    # scheduler.add_job(ThirdEtcApi.download_blacklist_incre, trigger='cron', hour='*/1')
-    # scheduler.add_job(ThirdEtcApi.reupload_etc_deduct_from_db, trigger='cron', hour='*1')
+    # scheduler.add_job(ThirdEtcApi.my_job1, trigger='cron', minute="*/2")
+    # scheduler.add_job(ThirdEtcApi.my_job2, trigger='cron', minute="*/5")
+    scheduler.add_job(ThirdEtcApi.download_blacklist_base, trigger='cron', hour='1')
+    scheduler.add_job(ThirdEtcApi.download_blacklist_incre, trigger='cron', hour='*/1')
+    scheduler.add_job(ThirdEtcApi.reupload_etc_deduct_from_db, trigger='cron', hour='*/1')
     print("启动调度器...")
 
     scheduler.start()
@@ -59,4 +66,5 @@ def head():
 
 
 if __name__ == '__main__':
-    uvicorn.run(app="main:app", host="0.0.0.0", port=8002, workers=1)
+    # TODO worker=2时有问题
+    uvicorn.run(app="main:app", host="0.0.0.0", port=8001, workers=1)

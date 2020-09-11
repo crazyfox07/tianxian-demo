@@ -184,13 +184,14 @@ class SocketClient(object):
         """
         # TODO 待待删打印信息
         self.command_recv_set.print_obu_info()
-        # 计算停车时长
-        park_record_time = CommonUtil.time_difference(body.entrance_time, body.exit_time)
         # 入场时间戳格式化 yyyyMMddHHmmss
         entrance_time = CommonUtil.timestamp_format(body.entrance_time, format='%Y%m%d%H%M%S')
         # 交易时间格式化（yyyyMMddHHmmss）
         # exit_time = CommonUtil.timestamp_format(body.exit_time, format='%Y%m%d%H%M%S')
         exit_time = self.command_recv_set.info_b5['TransTime']
+        exit_time_stamp = CommonUtil.str_to_timestamp(timestr=exit_time, format='%Y%m%d%H%M%S')
+        # 计算停车时长
+        park_record_time = CommonUtil.time_difference(body.entrance_time, exit_time_stamp)
         # 交易后余额
         balance = self.command_recv_set.info_b5['CardBalance']
         # 交易前余额 1999918332 单位分

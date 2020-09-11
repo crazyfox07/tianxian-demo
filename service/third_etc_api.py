@@ -21,10 +21,10 @@ from model.db_orm import db_session, ETCFeeDeductInfoOrm
 
 class ThirdEtcApi(object):
     # TODO 调用第三方api
-    ETC_UPLOAD_URL = 'http://{host}:{port}/api/gateway/etc'.format(
-        host=CommonConf.ETC_CONF_DICT['thirdApi']['host'],
-        port=CommonConf.ETC_CONF_DICT['thirdApi']['port'])
-
+    # ETC_UPLOAD_URL = 'http://{host}:{port}/api/gateway/etc'.format(
+    #     host=CommonConf.ETC_CONF_DICT['thirdApi']['host'],
+    #     port=CommonConf.ETC_CONF_DICT['thirdApi']['port'])
+    ETC_UPLOAD_URL = CommonConf.ETC_CONF_DICT['thirdApi']['url']
     # app_id
     APPID = CommonConf.ETC_CONF_DICT['thirdApi']['app_id']
     # 私钥

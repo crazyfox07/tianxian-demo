@@ -179,9 +179,9 @@ class CommonUtil(object):
 
 
 if __name__ == '__main__':
-    src_file = r'E:\lxw\project\tianxian-demo\database\10908198_GBCardBListIncre.cfg.zip'
-    dest_dir = os.path.join(CommonConf.ROOT_DIR, 'database')
-    CommonUtil.unzipfile(src_file, dest_dir)
+    # src_file = r'E:\lxw\project\tianxian-demo\database\10908198_GBCardBListIncre.cfg.zip'
+    # dest_dir = os.path.join(CommonConf.ROOT_DIR, 'database')
+    # CommonUtil.unzipfile(src_file, dest_dir)
     # consume_money_hex = CommonUtil.etcfee_to_hex(999.99)
     # print(consume_money_hex)
     # consume_money = CommonUtil.hex_to_etcfee(consume_money_hex)
@@ -195,8 +195,8 @@ if __name__ == '__main__':
     # st1 = int(time.time())
     # st2 = st1 + 3 * 24 * 60 * 60 + 2 * 60 * 60 + 3 * 60 + 5
     # st2 = st1 + 3 * 24 * 60 * 60 + 5
-    # CommonUtil.time_difference(st1, st2)
-    # c = int(time.time())
+    print(CommonUtil.time_difference(1599792556, 1599792656))
+    c = int(time.time())
     # print(c)
     # for _ in range(10):
     #     # a = CommonUtil.timestamp_format(timestamp=c, format='%Y%m%d%H%M%S')

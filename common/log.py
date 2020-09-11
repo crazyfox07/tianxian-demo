@@ -34,7 +34,6 @@ class Logger:
         self.logger.setLevel(logging.INFO)
 
 
-os.makedirs(CommonConf.LOG_DIR, exist_ok=True)
 log_path = os.path.join(CommonConf.LOG_DIR, CommonUtil.timestamp_format(format="%Y%m%d")+'-tianxian.log')
 
 logger = Logger("tianxian", log_path).logger

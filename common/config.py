@@ -4,42 +4,6 @@ import sys
 import yaml
 
 
-# class ETCCONF(object):
-#     """
-#     etc交易设置
-#     """
-#
-#     def __init__(self, lane_num='0', communicate_interface='以太网', ip='192.168.1.69', port=60001, lane_mode='03',
-#                  trans_mode='02', wait_time='03', pll_channel_id='00', tx_power='08', obu_div_factor='cdf2bcafcdf2bcaf',
-#                  device_no='ShowLinx - 3202005006', device_type='0'):
-#         """
-#         :param lane_num: 车道号
-#         :param communicate_interface: 通讯接口
-#         :param ip:  天线ip
-#         :param port:  端口
-#         :param lane_mode: 车道模式
-#         :param trans_mode: 交易模式
-#         :param wait_time: 最小重读时间
-#         :param pll_channel_id: 信道号
-#         :param tx_tower: 功率级数
-#         :param obu_div_factor: 电子标签一级分散因子 比如"万集万集"的十六进制 'CDF2BCAFCDF2BCAF'， 山东： 'c9bdb6abc9bdb6ab'
-#         :param device_no: 设备号
-#         :param device_type: 设备类型
-#         """
-#         self.lane_num = lane_num
-#         self.communicate_interface = communicate_interface
-#         self.ip = ip
-#         self.port = port
-#         self.lane_mode = lane_mode
-#         self.trans_mode = trans_mode
-#         self.wait_time = wait_time
-#         self.pll_channel_id = pll_channel_id
-#         self.tx_power = tx_power
-#         self.obu_div_factor = obu_div_factor
-#         self.device_no = device_no
-#         self.device_type = device_type
-
-
 def parse_ect_conf_yaml(file_path='etc_conf.yaml'):
     """
     解析etc配置文件
@@ -83,6 +47,10 @@ class CommonConf(object):
     ETC_CONF_DICT = parse_ect_conf_yaml(ETC_CONF_PATH)
     # sqlite的路径
     SQLITE_DIR = ETC_CONF_DICT['sqlite_dir']
+
+
+os.makedirs(CommonConf.LOG_DIR, exist_ok=True)
+os.makedirs(CommonConf.SQLITE_DIR, exist_ok=True)
 
 
 
