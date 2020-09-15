@@ -6,8 +6,10 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI
 
 from common.config import CommonConf
+from common.log import logger
 from model.db_orm import init_db
 from model.obu_model import OBUModel
+from service.check_rsu_status import RsuStatus
 from service.etc_toll import ETCToll
 from service.third_etc_api import ThirdEtcApi
 
@@ -15,6 +17,15 @@ app = FastAPI()
 
 # scheduler = AsyncIOScheduler()
 scheduler = BackgroundScheduler()
+
+
+@app.on_event('startup')
+def init_rsu():
+    """
+    初始化天线，主要用于心跳检测
+    :return:
+    """
+    RsuStatus.init_rsu_status_list()
 
 
 @app.on_event('startup')
@@ -41,10 +52,13 @@ def init_scheduler():
 
     # scheduler.add_job(ThirdEtcApi.my_job1, trigger='cron', minute="*/2")
     # scheduler.add_job(ThirdEtcApi.my_job2, trigger='cron', minute="*/5")
-    scheduler.add_job(ThirdEtcApi.download_blacklist_base, trigger='cron', hour='1')
-    scheduler.add_job(ThirdEtcApi.download_blacklist_incre, trigger='cron', hour='*/1')
+    # scheduler.add_job(ThirdEtcApi.download_blacklist_base, trigger='cron', hour='1')
+    # scheduler.add_job(ThirdEtcApi.download_blacklist_incre, trigger='cron', hour='*/1')
     scheduler.add_job(ThirdEtcApi.reupload_etc_deduct_from_db, trigger='cron', hour='*/1')
-    print("启动调度器...")
+    scheduler.add_job(RsuStatus.timing_update_rsu_status_list, trigger='cron', second='*/30',
+                      kwargs={'callback': ThirdEtcApi.tianxian_heartbeat})
+    # scheduler.add_job(ThirdEtcApi.tianxian_heartbeat, trigger='cron', second='*/20')
+    logger.info("启动调度器...")
 
     scheduler.start()
 
@@ -66,5 +80,5 @@ def head():
 
 
 if __name__ == '__main__':
-    # TODO worker=2时有问题
-    uvicorn.run(app="main:app", host="0.0.0.0", port=8001, workers=1)
+    # TODO workers>1时有问题，考虑gunicorn+uvicorn，同时考虑多进程的定时任务问题
+    uvicorn.run(app="main:app", host="0.0.0.0", port=8001)

@@ -65,6 +65,41 @@ class ThirdEtcApi(object):
         return False
 
     @staticmethod
+    def exists_in_blacklist(issuer_identifier, card_net, card_id):
+        """
+        通过第三方接口查询card_net+card_sn是否在黑名单中
+        :param issuer_identifier 发行商代码
+        :param card_net: card网络编号
+        :param card_id: card id
+        :return:
+        """
+        data_dict = {
+            "method": "blacklist",
+            "params": {
+                "issuer_identifier": issuer_identifier,
+                "card_net": str(card_net),
+                "card_sn": card_id
+            }
+        }
+        data_json = json.dumps(data_dict, ensure_ascii=False)
+        print('+=' * 50)
+        print(data_json)
+        sign = XlapiSignature.to_sign_with_private_key(data_json, private_key=ThirdEtcApi.PRIVATE_KEY)
+        upload_body = dict(appid=ThirdEtcApi.APPID,
+                           data=data_json,
+                           sign=sign.decode(encoding='utf8'))
+        try:
+            res = http_session.post(ThirdEtcApi.ETC_UPLOAD_URL, data=upload_body)
+            res_json = res.json()
+            print(res_json)
+            status = res_json['data']['status']
+            exist_flag = True if str(status) == '1' else False
+            return exist_flag
+
+        except:
+            logger.error(traceback.format_exc())
+
+    @staticmethod
     def download_blacklist_base():
         """
         下载基础黑名单, 定时每天凌晨一点跑一次
@@ -95,7 +130,6 @@ class ThirdEtcApi(object):
         CommonUtil.download_file(url=file_url, file_path=file_path)
         # 解压下载的zip文件
         CommonUtil.unzipfile(src_file=file_path, dest_dir=CommonConf.SQLITE_DIR)
-
 
     @staticmethod
     def download_blacklist_incre():
@@ -137,7 +171,7 @@ class ThirdEtcApi(object):
         """
         query_items = db_session.query(ETCFeeDeductInfoOrm).filter(ETCFeeDeductInfoOrm.upload_flag == 0)
         for item in query_items:
-            # TODO 调用第三方api
+            #  调用第三方api
             request_flag = ThirdEtcApi.etc_deduct_upload(item.etc_info)
             if request_flag:  # 如果上传成功，更新upload_flag为1
                 item.upload_flag = 1
@@ -145,56 +179,89 @@ class ThirdEtcApi(object):
                 item.upload_fail_count += 1
             db_session.commit()
 
+    @staticmethod
+    def tianxian_heartbeat():
+        """
+        天线心跳
+        :return:
+        """
+        tianxian_heartbeat_dict = dict(park_code=CommonConf.ETC_CONF_DICT['etc'][0]['park_code'],
+                                       dev_code=CommonConf.ETC_CONF_DICT['dev_code'],
+                                       # status_code='01',  # 11：正常，00：暂停收费，01：故障
+                                       rsu_broke_list=[],
+                                       black_file_version='0',
+                                       black_file_version_incr='0'
+                                       )
+        for tianxian_item in CommonConf.RSU_STATUS_LIST:
+            if tianxian_item['rsu_status'] == 1:  # tianxian_item['rsu_status']==1表示天线异常, 0表示正常
+                tianxian_heartbeat_dict['rsu_broke_list'].append(tianxian_item['sn'])
+
+        tianxian_heartbeat_dict['status_code'] = '01' if tianxian_heartbeat_dict['rsu_broke_list'] else '11'
+        data_dict = {
+            "method": "heartbeat",
+            "params": tianxian_heartbeat_dict
+        }
+        data_json = json.dumps(data_dict, ensure_ascii=False)
+        sign = XlapiSignature.to_sign_with_private_key(data_json, private_key=ThirdEtcApi.PRIVATE_KEY)
+        upload_body = dict(appid=ThirdEtcApi.APPID,
+                           data=data_json,
+                           sign=sign.decode(encoding='utf8'))
+        res = http_session.post(ThirdEtcApi.ETC_UPLOAD_URL, data=upload_body)
+        logger.info(data_json)
+        logger.info(res.json())
+
 
 if __name__ == '__main__':
     print('start')
     # sched.start()
     begin = time.time()
+    print(ThirdEtcApi.tianxian_heartbeat())
+    # print(ThirdEtcApi.exists_in_blacklist('1' * 16, '1111', '22222222222222222222'))
     # ThirdEtcApi.download_blacklist_base()
     # ThirdEtcApi.download_blacklist_incre()
-    ThirdEtcApi.reupload_etc_deduct_from_db()
-#     etc_deduct_info_dict = {
-#     "method": "etcPayUpload",
-#     "params": {
-#         "algorithm_type": "1",
-#         "balance": 4294964440,
-#         "card_net_no": "3401",
-#         "card_rnd": "45TGUM2W",
-#         "card_serial_no": "001d",
-#         "card_sn": "1901230202361703",
-#         "card_type": "23",
-#         "charging_type": "0",
-#         "deduct_amount": 1,
-#         "device_no": "ShowLinx - 3202001001",
-#         "device_type": "0",
-#         "discount_amount": 0,
-#         "entrance_time": "20200910090150",
-#         "exit_time": "20200910091559",
-#         "issuer_identifier": "C9BDB6AB37010001",
-#         "obu_id": "014E7E95",
-#         "park_code": "371104",
-#         "park_record_time": "1分40秒",
-#         "plate_color_code": "4",
-#         "plate_no": "鲁LD10103",
-#         "plate_type_code": "0",
-#         "psam_id": "37011901230202361703",
-#         "psam_serial_no": "0000053c",
-#         "receivable_total_amount": 1,
-#         "serial_number": "3701011925377913",
-#         "tac": "5232d485",
-#         "terminal_id": "01110004dea0",
-#         "trans_before_balance": 4294964441,
-#         "trans_order_no": "1818620411622008754",
-#         "trans_type": "09",
-#         "vehicle_type": "1"
-#     }
-# }
-#     # TODO 存数据库
-#     DBClient.add(db_session=db_session,
-#                  orm=ETCFeeDeductInfoOrm(id=CommonUtil.random_str(32).lower(),
-#                                          etc_info=json.dumps(etc_deduct_info_dict, ensure_ascii=False),
-#                                          upload_flag=0,
-#                                          upload_fail_count=1))
+    # ThirdEtcApi.reupload_etc_deduct_from_db()
+    #     etc_deduct_info_dict = {
+    #     "method": "etcPayUpload",
+    #     "params": {
+    #         "algorithm_type": "1",
+    #         "balance": 4294964440,
+    #         "card_net_no": "3401",
+    #         "card_rnd": "45TGUM2W",
+    #         "card_serial_no": "001d",
+    #         "card_sn": "1901230202361703",
+    #         "card_type": "23",
+    #         "charging_type": "0",
+    #         "deduct_amount": 1,
+    #         "device_no": "ShowLinx - 3202001001",
+    #         "device_type": "0",
+    #         "discount_amount": 0,
+    #         "entrance_time": "20200910090150",
+    #         "exit_time": "20200910091559",
+    #         "issuer_identifier": "C9BDB6AB37010001",
+    #         "obu_id": "014E7E95",
+    #         "park_code": "371104",
+    #         "park_record_time": "1分40秒",
+    #         "plate_color_code": "4",
+    #         "plate_no": "鲁LD10103",
+    #         "plate_type_code": "0",
+    #         "psam_id": "37011901230202361703",
+    #         "psam_serial_no": "0000053c",
+    #         "receivable_total_amount": 1,
+    #         "serial_number": "3701011925377913",
+    #         "tac": "5232d485",
+    #         "terminal_id": "01110004dea0",
+    #         "trans_before_balance": 4294964441,
+    #         "trans_order_no": "1818620411622008754",
+    #         "trans_type": "09",
+    #         "vehicle_type": "1"
+    #     }
+    # }
+    #     # TODO 存数据库
+    #     DBClient.add(db_session=db_session,
+    #                  orm=ETCFeeDeductInfoOrm(id=CommonUtil.random_str(32).lower(),
+    #                                          etc_info=json.dumps(etc_deduct_info_dict, ensure_ascii=False),
+    #                                          upload_flag=0,
+    #                                          upload_fail_count=1))
 
     end = time.time()
     print('time use %ss' % (int(end) - int(begin)))

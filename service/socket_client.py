@@ -60,6 +60,15 @@ class SocketClient(object):
         """
         return self.client
 
+    def update_rsu_status(self, rsu_status):
+        park_code, lane_num = self.etc_conf['park_code'], self.etc_conf['lane_num']
+        for tianxian_item in CommonConf.RSU_STATUS_LIST:
+            if (tianxian_item['park_code'] == park_code) and (tianxian_item['lane_num'] == lane_num):
+                print(CommonConf.RSU_STATUS_LIST)
+                print('rst status: %s' % (rsu_status,))
+                tianxian_item['rsu_status'] = 0 if rsu_status == '00' else 1  # # 天线状态,0表示正常，1表示异常， 默认异常
+                print(CommonConf.RSU_STATUS_LIST)
+
     @func_set_timeout(CommonConf.TIME_OUT)
     def fee_deduction(self):
         """
@@ -92,6 +101,14 @@ class SocketClient(object):
             # b0 设备状态信息帧
             if msg_str[6: 8] == 'b0':
                 self.command_recv_set.parse_b0(msg_str)  # 解析b0指令
+                # 天线状态
+                rsu_status = self.command_recv_set.info_b0['RSUStatus']
+                # 更新天线状态
+                self.update_rsu_status(rsu_status)
+                if rsu_status != '00':
+                    err_msg = '天线状态异常'
+                    return dict(flag=False,
+                                error_msg=err_msg)
             # b2 电子标签信息帧
             elif msg_str[6:8] == 'b2':
                 if msg_str[8:24] == 'fe01fe01fe01fe01':  # 'fe01fe01fe01fe01' 表示心跳
@@ -137,9 +154,11 @@ class SocketClient(object):
                     card_net = int(issuer_info[20: 24])  # 需要转换为整数
                     card_sn = issuer_info[24: 40]
                     begin_query = int(time.time())
-                    card_sn_in_blacklist_flag = DBClient.exists_in_blacklist(card_net=card_net, card_id=card_sn)
+                    issuer_identifier = self.command_recv_set.info_b2['IssuerIdentifier']
+                    card_sn_in_blacklist_flag = ThirdEtcApi.exists_in_blacklist(
+                        issuer_identifier=issuer_identifier, card_net=card_net, card_id=card_sn)
                     end_query = int(time.time())
-                    print('query blacklist use time: {}, card_sn_in_blacklist_flag: {}'.format(
+                    logger.info('query blacklist use time: {}, card_sn_in_blacklist_flag: {}'.format(
                         end_query-begin_query, card_sn_in_blacklist_flag))
                     # 物理卡号存在于黑名单中直接返回
                     if card_sn_in_blacklist_flag:
@@ -164,7 +183,7 @@ class SocketClient(object):
                     self.command_recv_set.parse_b5(msg_str)  # 解析b5指令
                     #  获取并发送c1继续交易指令
                     c1 = CommandSendSet.combine_c1(obuid, obu_div_factor=self.etc_conf['obu_div_factor'])
-                    print('b5后发送c1指令：%s， 电子标签mac地址 obuid = %s' % (c1, obuid))
+                    logger.info('b5后发送c1指令：%s， 电子标签mac地址 obuid = %s' % (c1, obuid))
                     # self.client.send(bytes.fromhex(c1))
                     self.etc_charge_flag = True
                     return self.command_recv_set
@@ -270,6 +289,13 @@ class SocketClient(object):
         """
         self.client.shutdown(2)
         self.client.close()
+
+
+def check_rsu_status():
+    """
+    检测rsu状态
+    :return:
+    """
 
 
 if __name__ == '__main__':

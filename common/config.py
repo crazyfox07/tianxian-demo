@@ -47,6 +47,8 @@ class CommonConf(object):
     ETC_CONF_DICT = parse_ect_conf_yaml(ETC_CONF_PATH)
     # sqlite的路径
     SQLITE_DIR = ETC_CONF_DICT['sqlite_dir']
+    # RSU状态列表
+    RSU_STATUS_LIST = []
 
 
 os.makedirs(CommonConf.LOG_DIR, exist_ok=True)
