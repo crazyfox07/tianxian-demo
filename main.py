@@ -1,5 +1,6 @@
 import uvicorn
 import os
+import traceback
 from apscheduler.executors.pool import ProcessPoolExecutor
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -10,7 +11,8 @@ from common.log import logger
 from model.db_orm import init_db
 from model.obu_model import OBUModel
 from service.check_rsu_status import RsuStatus
-from service.etc_toll import ETCToll
+from service.etc_toll import EtcToll
+from service.rsu_store import RsuStore
 from service.third_etc_api import ThirdEtcApi
 
 app = FastAPI()
@@ -19,13 +21,22 @@ app = FastAPI()
 scheduler = BackgroundScheduler()
 
 
-@app.on_event('startup')
-def init_rsu():
+@app.on_event("startup")
+def init_rsu_store_dict():
     """
-    初始化天线，主要用于心跳检测
-    :return:
+    初始化天线配置
     """
-    RsuStatus.init_rsu_status_list()
+    RsuStore.init_rsu_store()
+
+
+#
+# @app.on_event('startup')
+# def init_rsu():
+#     """
+#     初始化天线，主要用于心跳检测
+#     :return:
+#     """
+#     RsuStatus.init_rsu_status_list()
 
 
 @app.on_event('startup')
@@ -54,13 +65,20 @@ def init_scheduler():
     # scheduler.add_job(ThirdEtcApi.my_job2, trigger='cron', minute="*/5")
     # scheduler.add_job(ThirdEtcApi.download_blacklist_base, trigger='cron', hour='1')
     # scheduler.add_job(ThirdEtcApi.download_blacklist_incre, trigger='cron', hour='*/1')
-    scheduler.add_job(ThirdEtcApi.reupload_etc_deduct_from_db, trigger='cron', hour='*/1')
-    scheduler.add_job(RsuStatus.timing_update_rsu_status_list, trigger='cron', second='*/30',
-                      kwargs={'callback': ThirdEtcApi.tianxian_heartbeat})
+    # scheduler.add_job(ThirdEtcApi.reupload_etc_deduct_from_db, trigger='cron', hour='*/1')
+    # scheduler.add_job(RsuStatus.timing_update_rsu_status_list, trigger='cron', second='*/30',
+    #                   kwargs={'callback': ThirdEtcApi.tianxian_heartbeat})
     # scheduler.add_job(ThirdEtcApi.tianxian_heartbeat, trigger='cron', second='*/20')
+    scheduler.add_job(RsuStatus.monitor_rsu_heartbeat, trigger='cron', second='*/20',
+                      kwargs={'callback': ThirdEtcApi.tianxian_heartbeat})
     logger.info("启动调度器...")
 
     scheduler.start()
+
+
+@app.on_event("shutdown")
+def shutdown():
+    logger.info('application shutdown')
 
 
 @app.post("/etc_fee_deduction")
@@ -70,7 +88,16 @@ def etc_fee_deduction(body: OBUModel):
     :param body:
     :return:
     """
-    result = ETCToll.toll(body)
+    if CommonConf.ETC_CONF_DICT['debug'] == 'true':
+        body.deduct_amount = 0.01
+    try:
+        result = EtcToll.toll(body)
+    except:
+        logger.error(traceback.format_exc())
+        result = dict(flag=False,
+                      errorCode='01',
+                      errorMessage='etc扣费失败',
+                      data=None)
     return result
 
 

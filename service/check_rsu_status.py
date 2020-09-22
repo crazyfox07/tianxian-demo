@@ -7,16 +7,55 @@
 """
 import traceback
 import socket
-
+import datetime
 from func_timeout import func_set_timeout
 
-from common.config import CommonConf
+from common.config import CommonConf, StatusFlagConfig
 from common.log import logger
 from service.command_receive_set import CommandReceiveSet
 from service.command_send_set import CommandSendSet
+from service.rsu_socket import RsuSocket
 
 
 class RsuStatus(object):
+    @staticmethod
+    def monitor_rsu_heartbeat(callback):
+        """
+        监听天线心跳
+        : callback: 回调函数
+        :return:
+        """
+        # 定义要上传的天线心跳字典
+        upload_rsu_heartbeat_dict = dict(park_code=CommonConf.ETC_CONF_DICT['etc'][0]['park_code'],
+                                         dev_code=CommonConf.ETC_CONF_DICT['dev_code'], # 设备编号，运行本代码的机器编号，非天线
+                                         status_code='11',  # 11：正常，00：暂停收费，01：故障， 默认正常
+                                         rsu_broke_list=[],
+                                         black_file_version='0',
+                                         black_file_version_incr='0'
+                                         )
+        print('监听心跳。。。。。。。')
+        for lane_num, rsu_client in CommonConf.RSU_SOCKET_STORE_DICT.items():
+            now = datetime.datetime.now()
+            # 假如三分钟没有心跳，则认为天线出故障，并重启socket
+            logger.info('距离心跳时间更新：{}s'.format((now - rsu_client.rsu_heartbeat_time).seconds))
+            if (now - rsu_client.rsu_heartbeat_time).seconds > 60 * 3:
+                rsu_client.rsu_status = StatusFlagConfig.RSU_FAILURE
+                #  重启socket
+                try:
+                    rsu_client.init_rsu()
+                except:
+                    logger.error(traceback.format_exc())
+                if rsu_client.rsu_status == StatusFlagConfig.RSU_FAILURE:
+                    logger.info('**********重启天线失败**************')
+                    # 将出现故障的天线的sn加入到rsu_broke_list列表中
+                    upload_rsu_heartbeat_dict['rsu_broke_list'].append(rsu_client.rsu_conf['sn'])
+                else:
+                    logger.info('**********重启天线成功**************')
+            else:
+                rsu_client.rsu_status = StatusFlagConfig.RSU_NORMAL
+        if upload_rsu_heartbeat_dict['rsu_broke_list']:
+            upload_rsu_heartbeat_dict['status_code'] = '01'
+        callback(upload_rsu_heartbeat_dict)
 
     @staticmethod
     def init_rsu_status_list():
@@ -58,7 +97,7 @@ class RsuStatus(object):
                                                                                 item['lane_num']):
                         try:
                             rsu_status_hex = RsuStatus.get_rsu_status(item)  # 获取天线状态
-                            rsu_status = 0 if rsu_status_hex == '00' else 1 # 天线状态,0表示正常，1表示异常， 默认异常
+                            rsu_status = 0 if rsu_status_hex == '00' else 1  # 天线状态,0表示正常，1表示异常， 默认异常
                             rsu_status_item['rsu_status'] = rsu_status
                         except:
                             logger.error(traceback.format_exc())
@@ -104,3 +143,7 @@ class RsuStatus(object):
             # 关闭client
             client.shutdown(2)
             client.close()
+
+
+if __name__ == '__main__':
+    RsuStatus.monitor_rsu_heartbeat()

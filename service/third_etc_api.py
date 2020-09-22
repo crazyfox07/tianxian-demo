@@ -9,6 +9,7 @@ import json
 import os
 import traceback
 from common.config import CommonConf
+from common.db_client import DBClient
 from common.http_client import http_session
 from common.log import logger
 from common.sign_verify import XlapiSignature
@@ -45,22 +46,31 @@ class ThirdEtcApi(object):
         etc支付上传
         :return:
         """
-
+        # # 如果上传成功upload_flag=1， 上传失败upload_flag=0, 默认上传失败
+        upload_flag = 0
         # 业务编码报文
         # 将data 值base64 后，使用SHA256WithRSA 计算签名
         sign = XlapiSignature.to_sign_with_private_key(etc_deduct_info_json, private_key=ThirdEtcApi.PRIVATE_KEY)
         upload_body = dict(appid=ThirdEtcApi.APPID,
                            data=etc_deduct_info_json,
                            sign=sign.decode(encoding='utf8'))
-        print('+' * 30)
-        print(upload_body)
+        # print('+' * 30)
+        logger.info('上传etc扣费数据： {}'.format(etc_deduct_info_json))
         try:
             res = http_session.post(ThirdEtcApi.ETC_UPLOAD_URL, data=upload_body)
-            print(res.json())
             if res.json()['code'] == '000000':
-                return True
+                upload_flag = 1
         except:
             logger.error(traceback.format_exc())
+
+        # 统计上传失败次数
+        upload_fail_count = 0 if upload_flag else 1
+        # TODO 存数据库
+        DBClient.add(db_session=db_session,
+                     orm=ETCFeeDeductInfoOrm(id=CommonUtil.random_str(32).lower(),
+                                             etc_info=etc_deduct_info_json,
+                                             upload_flag=upload_flag,
+                                             upload_fail_count=upload_fail_count))
 
         return False
 
@@ -180,35 +190,23 @@ class ThirdEtcApi(object):
             db_session.commit()
 
     @staticmethod
-    def tianxian_heartbeat():
+    def tianxian_heartbeat(params):
         """
         天线心跳
         :return:
         """
-        tianxian_heartbeat_dict = dict(park_code=CommonConf.ETC_CONF_DICT['etc'][0]['park_code'],
-                                       dev_code=CommonConf.ETC_CONF_DICT['dev_code'],
-                                       # status_code='01',  # 11：正常，00：暂停收费，01：故障
-                                       rsu_broke_list=[],
-                                       black_file_version='0',
-                                       black_file_version_incr='0'
-                                       )
-        for tianxian_item in CommonConf.RSU_STATUS_LIST:
-            if tianxian_item['rsu_status'] == 1:  # tianxian_item['rsu_status']==1表示天线异常, 0表示正常
-                tianxian_heartbeat_dict['rsu_broke_list'].append(tianxian_item['sn'])
-
-        tianxian_heartbeat_dict['status_code'] = '01' if tianxian_heartbeat_dict['rsu_broke_list'] else '11'
         data_dict = {
             "method": "heartbeat",
-            "params": tianxian_heartbeat_dict
+            "params": params
         }
         data_json = json.dumps(data_dict, ensure_ascii=False)
+        logger.info('天线心跳：{}'.format(data_json))
         sign = XlapiSignature.to_sign_with_private_key(data_json, private_key=ThirdEtcApi.PRIVATE_KEY)
         upload_body = dict(appid=ThirdEtcApi.APPID,
                            data=data_json,
                            sign=sign.decode(encoding='utf8'))
-        res = http_session.post(ThirdEtcApi.ETC_UPLOAD_URL, data=upload_body)
-        logger.info(data_json)
-        logger.info(res.json())
+        # res = http_session.post(ThirdEtcApi.ETC_UPLOAD_URL, data=upload_body)
+        # logger.info(res.json())
 
 
 if __name__ == '__main__':

@@ -134,6 +134,16 @@ class CommandReceiveSet(object):
         print('===================================================')
         pprint(self.info_b5)
 
+    def clear_info_b2345(self):
+        """
+        清空收集到的b2, b3, b4, b5指令
+        :return:
+        """
+        self.info_b2.clear()
+        self.info_b3.clear()
+        self.info_b4.clear()
+        self.info_b5.clear()
+
 
 if __name__ == '__main__':
     command_reiv_set = CommandReceiveSet()

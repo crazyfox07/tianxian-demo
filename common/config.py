@@ -1,8 +1,9 @@
 import os
 import sys
+from concurrent.futures.thread import ThreadPoolExecutor
 
 import yaml
-
+from enum import Enum
 
 def parse_ect_conf_yaml(file_path='etc_conf.yaml'):
     """
@@ -18,9 +19,9 @@ def app_path():
     """Returns the base application path."""
     if hasattr(sys, 'frozen'):
         # Handles PyInstaller
-        print('1111111111111111111111111111111111111111111')
-        print(getattr(sys, 'frozen'))
-        print(sys.executable)
+        # print('1111111111111111111111111111111111111111111')
+        # print(getattr(sys, 'frozen'))
+        # print(sys.executable)
         return os.path.dirname(sys.executable).rsplit('common')[0]  #使用pyinstaller打包后的exe目录
     return os.path.dirname(__file__).rsplit('common')[0]                 #没打包前的py目录
 
@@ -39,16 +40,30 @@ class CommonConf(object):
     ROOT_DIR = app_path()
     # 日志路径
     LOG_DIR = os.path.join(ROOT_DIR, 'logs')
-    # 超时时间
-    TIME_OUT = 20
     # etc配置文件路径
     ETC_CONF_PATH = os.path.join(ROOT_DIR, 'common', 'etc_conf.yaml')
     # etc_conf.yaml转为python的字典形式
     ETC_CONF_DICT = parse_ect_conf_yaml(ETC_CONF_PATH)
+    # 超时时间
+    FUNC_TIME_OUT = ETC_CONF_DICT['func_time_out']
+    # socket超时时间,搜索obu的时间
+    SOCKET_TIME_OUT = ETC_CONF_DICT['socket_time_out']
     # sqlite的路径
     SQLITE_DIR = ETC_CONF_DICT['sqlite_dir']
     # RSU状态列表
     RSU_STATUS_LIST = []
+    # 天线RsuSocket存储字典
+    RSU_SOCKET_STORE_DICT = dict()
+    # 创建线程池
+    EXECUTOR = ThreadPoolExecutor(max_workers=3)
+
+
+class StatusFlagConfig(Enum):
+    # 天线状态异常
+    RSU_FAILURE = 0
+    # 天线状态正常
+    RSU_NORMAL = 1
+
 
 
 os.makedirs(CommonConf.LOG_DIR, exist_ok=True)
@@ -57,7 +72,4 @@ os.makedirs(CommonConf.SQLITE_DIR, exist_ok=True)
 
 
 if __name__ == '__main__':
-    from pprint import pprint
-    pprint(CommonConf.ETC_CONF_DICT)
-    print(app_path())
-    print(CommonConf.SQLITE_DIR)
+    print(CommonConf.SOCKET_TIME_OUT)
