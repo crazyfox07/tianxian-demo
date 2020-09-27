@@ -1,3 +1,5 @@
+import time
+
 from pydantic import BaseModel
 
 
@@ -19,6 +21,7 @@ class OBUModel(BaseModel):
     deduct_amount: float  # 扣款金额
     receivable_total_amount: float  # 应收金额
     discount_amount: float  # 折扣金额
+    recv_time = time.time()  # 接受请求的时间
 
 
 

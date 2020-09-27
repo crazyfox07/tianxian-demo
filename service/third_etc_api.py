@@ -8,13 +8,16 @@
 import json
 import os
 import traceback
+
+from sqlalchemy import and_
+
 from common.config import CommonConf
 from common.db_client import DBClient
 from common.http_client import http_session
 from common.log import logger
 from common.sign_verify import XlapiSignature
 from common.utils import CommonUtil
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 
 from model.db_orm import db_session, ETCFeeDeductInfoOrm
@@ -33,7 +36,7 @@ class ThirdEtcApi(object):
 
     @staticmethod
     def my_job1():
-        time.sleep(30)
+        time.sleep(3)
         logger.info(f'{datetime.now():%H:%M:%S} Hello job1  ============== ')
 
     @staticmethod
@@ -41,9 +44,12 @@ class ThirdEtcApi(object):
         logger.info(f'{datetime.now():%H:%M:%S} Hello job2 ')
 
     @staticmethod
-    def etc_deduct_upload(etc_deduct_info_json) -> bool:
+    def etc_deduct_upload(etc_deduct_info_json):
         """
         etc支付上传
+        :trans_order_no: 订单号
+        :etc_deduct_info_json: 待上传的数据
+        :add_to_db: 是否入库
         :return:
         """
         # # 如果上传成功upload_flag=1， 上传失败upload_flag=0, 默认上传失败
@@ -60,19 +66,11 @@ class ThirdEtcApi(object):
             res = http_session.post(ThirdEtcApi.ETC_UPLOAD_URL, data=upload_body)
             if res.json()['code'] == '000000':
                 upload_flag = 1
+            logger.info(res.json())
         except:
             logger.error(traceback.format_exc())
-
-        # 统计上传失败次数
         upload_fail_count = 0 if upload_flag else 1
-        # TODO 存数据库
-        DBClient.add(db_session=db_session,
-                     orm=ETCFeeDeductInfoOrm(id=CommonUtil.random_str(32).lower(),
-                                             etc_info=etc_deduct_info_json,
-                                             upload_flag=upload_flag,
-                                             upload_fail_count=upload_fail_count))
-
-        return False
+        return upload_flag, upload_fail_count
 
     @staticmethod
     def exists_in_blacklist(issuer_identifier, card_net, card_id):
@@ -101,13 +99,13 @@ class ThirdEtcApi(object):
         try:
             res = http_session.post(ThirdEtcApi.ETC_UPLOAD_URL, data=upload_body)
             res_json = res.json()
-            print(res_json)
             status = res_json['data']['status']
             exist_flag = True if str(status) == '1' else False
-            return exist_flag
-
         except:
-            logger.error(traceback.format_exc())
+            logger.error(res.text)
+            logger.error('查询黑名单时出现异常： '.format(traceback.format_exc()))
+            exist_flag = True
+        return exist_flag
 
     @staticmethod
     def download_blacklist_base():
@@ -179,7 +177,10 @@ class ThirdEtcApi(object):
         查找数据库中没能成功上传的数据，重新上传
         :return:
         """
-        query_items = db_session.query(ETCFeeDeductInfoOrm).filter(ETCFeeDeductInfoOrm.upload_flag == 0)
+        # 查询过去一天上传失败的
+        query_items = db_session.query(ETCFeeDeductInfoOrm).filter(
+            and_(ETCFeeDeductInfoOrm.create_time > (datetime.now() - timedelta(days=1)),
+                 ETCFeeDeductInfoOrm.upload_flag == 0))
         for item in query_items:
             #  调用第三方api
             request_flag = ThirdEtcApi.etc_deduct_upload(item.etc_info)
@@ -187,7 +188,12 @@ class ThirdEtcApi(object):
                 item.upload_flag = 1
             else:  # 如果上传失败，更新upload_fail_count 加 1
                 item.upload_fail_count += 1
-            db_session.commit()
+            # 数据修改好后提交
+            try:
+                db_session.commit()
+            except:
+                db_session.rollback()
+                logger.error(traceback.format_exc())
 
     @staticmethod
     def tianxian_heartbeat(params):
@@ -200,20 +206,59 @@ class ThirdEtcApi(object):
             "params": params
         }
         data_json = json.dumps(data_dict, ensure_ascii=False)
-        logger.info('天线心跳：{}'.format(data_json))
+        logger.info('上传天线心跳状态：{}'.format(data_json))
         sign = XlapiSignature.to_sign_with_private_key(data_json, private_key=ThirdEtcApi.PRIVATE_KEY)
         upload_body = dict(appid=ThirdEtcApi.APPID,
                            data=data_json,
                            sign=sign.decode(encoding='utf8'))
-        # res = http_session.post(ThirdEtcApi.ETC_UPLOAD_URL, data=upload_body)
-        # logger.info(res.json())
+        res = http_session.post(ThirdEtcApi.ETC_UPLOAD_URL, data=upload_body)
+        command = res.json()['command']
+        # 00：暂停收费
+        # 11：正常收费（默认）
+        if command == '00':
+            CommonConf.ETC_CONF_PATH = False
+            logger.info('暂停收费')
+        elif (command is None) or (command == '11'):
+            CommonConf.ETC_CONF_PATH = True
+        logger.info(res.json())
+
+    @staticmethod
+    def etc_deduct_notify(parkCode, outTradeNo, derateFee, payFee, payTime):
+        """
+        etc扣费下发通知
+        :return:
+        """
+        etc_deduct_notify_data = {
+            "flag": True,
+            "data": {
+                "parkCode": parkCode,
+                "outTradeNo": outTradeNo,
+                "derateFee": derateFee,
+                "payFee": payFee,
+                "payTime": payTime
+            }
+        }
+        print('etc扣费下发请求')
+        print(etc_deduct_notify_data)
+        etc_deduct_notify_url = CommonConf.ETC_CONF_DICT['thirdApi']['etc_deduct_notify_url']
+        try:
+            res = http_session.post(etc_deduct_notify_url, json=etc_deduct_notify_data)
+            result = res.json()['result']
+            if result == 'success':
+                return True
+        except:
+            logger.error(traceback.format_exc())
+        return False
 
 
 if __name__ == '__main__':
     print('start')
-    # sched.start()
-    begin = time.time()
-    print(ThirdEtcApi.tianxian_heartbeat())
+    ThirdEtcApi.etc_deduct_notify('371104', '33ujwhdfsuh2389fsfd', 0, 0.01, "2020-09-25 00:00:00")
+    # query_items = db_session.query(ETCFeeDeductInfoOrm).filter(
+    #     and_(ETCFeeDeductInfoOrm.create_time > (datetime.now() - timedelta(seconds=3600)),
+    #          ETCFeeDeductInfoOrm.upload_flag == 0))
+    # for item in query_items:
+    #     print(item.create_time, type(item.create_time), item.create_time + timedelta(seconds=36000)< datetime.now())
     # print(ThirdEtcApi.exists_in_blacklist('1' * 16, '1111', '22222222222222222222'))
     # ThirdEtcApi.download_blacklist_base()
     # ThirdEtcApi.download_blacklist_incre()
@@ -262,4 +307,3 @@ if __name__ == '__main__':
     #                                          upload_fail_count=1))
 
     end = time.time()
-    print('time use %ss' % (int(end) - int(begin)))

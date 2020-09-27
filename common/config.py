@@ -27,6 +27,8 @@ def app_path():
 
 class CommonConf(object):
     """公共配置"""
+    # etc正常扣費
+    ETC_DEDUCT_FLAG = True
     # 数据帧序列号计数器
     COUNT = 0
     # 数据帧序列号8XH中X可选数值
@@ -48,6 +50,8 @@ class CommonConf(object):
     FUNC_TIME_OUT = ETC_CONF_DICT['func_time_out']
     # socket超时时间,搜索obu的时间
     SOCKET_TIME_OUT = ETC_CONF_DICT['socket_time_out']
+    # etc检测心跳超时时间
+    ETC_HEARTBEAT_TIME_OUT = ETC_CONF_DICT['etc_heartbeat_time_out']
     # sqlite的路径
     SQLITE_DIR = ETC_CONF_DICT['sqlite_dir']
     # RSU状态列表

@@ -75,36 +75,6 @@ class RsuStatus(object):
                                         )
             CommonConf.RSU_STATUS_LIST.append(tianxian_status_item)
 
-    @staticmethod
-    def timing_update_rsu_status_list(callback):
-        """
-        定时更新天线状态列表CommonConf.RSU_STATUS_LIST。
-        对于CommonConf.RSU_STATUS_LIST中异常的天线，需要重新建立socket连接检查是否依然异常，并更新CommonConf.RSU_STATUS_LIST中的状态。
-        对于CommonConf.RSU_STATUS_LIST中正常的天线，直接跳过，不需要再次检测
-        :tianxian_heartbeat: 回调函数，向第三方接口发送心跳
-        :return:
-        """
-        # 如果CommonConf.RSU_STATUS_LIST为空，说明还初始化过，需要初始化
-        if not CommonConf.RSU_STATUS_LIST:
-            RsuStatus.init_rsu_status_list()
-
-        for rsu_status_item in CommonConf.RSU_STATUS_LIST:
-            # rsu_status=1异常，则尝试再次获取天线状态， 并更新rsu_status_item的rsu_status,
-            # rsu_status=0正常的话，不需要开启天线重新获取状态
-            if rsu_status_item['rsu_status'] == 1:
-                for item in CommonConf.ETC_CONF_DICT['etc']:
-                    if (rsu_status_item['park_code'] == item['park_code']) and (rsu_status_item['lane_num'] ==
-                                                                                item['lane_num']):
-                        try:
-                            rsu_status_hex = RsuStatus.get_rsu_status(item)  # 获取天线状态
-                            rsu_status = 0 if rsu_status_hex == '00' else 1  # 天线状态,0表示正常，1表示异常， 默认异常
-                            rsu_status_item['rsu_status'] = rsu_status
-                        except:
-                            logger.error(traceback.format_exc())
-                        break  # 跳出当前for循环
-
-        # 回调函数，向第三方接口发送心跳
-        callback()
 
     @staticmethod
     @func_set_timeout(5)

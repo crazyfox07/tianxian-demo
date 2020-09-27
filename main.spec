@@ -9,7 +9,7 @@ block_cipher = None
 a = Analysis(['main.py'],
              pathex=['E:\\lxw\\project\\tianxian-demo'],
              binaries=[],
-             datas=[('./common/etc_conf.yaml', './common')],
+             datas=[('./common/etc_conf.yaml', './common'), ('./deploy', 'deploy')],
              hiddenimports= ['uvicorn.logging', 'uvicorn.loops', 'uvicorn.loops.auto', 'uvicorn.protocols',
                              'uvicorn.protocols.http', 'uvicorn.protocols.http.auto', 'uvicorn.protocols.websockets',
                              'uvicorn.protocols.websockets.auto', 'uvicorn.lifespan', 'uvicorn.lifespan.on', 'main'],

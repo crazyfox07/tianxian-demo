@@ -7,6 +7,8 @@
 """
 import logging
 import os
+from logging.handlers import TimedRotatingFileHandler
+
 from common.utils import CommonUtil
 from common.config import CommonConf
 
@@ -18,8 +20,10 @@ class Logger:
         :param logfile: 生成log文件路径
         """
         self.logger = logging.getLogger(logame)
-        # 创建一个handler，用于写入日志文件
-        file_handler = logging.FileHandler(logfile, mode='a')
+        # 创建一个handler，用于写入日志文件，每隔一天分割一次日志文件
+        # backupCount 是保留日志个数。默认的0是不会自动删除掉日志。若设10，则在文件的创建过程中库会判断是否有超过这个10，若超过，则会从最先创建的开始删除。
+        file_handler = TimedRotatingFileHandler(logfile, when='D', interval=1, backupCount=30)
+        # file_handler = logging.FileHandler(logfile, mode='a')
         # 再创建一个handler, 用于输出到控制台
         console_handler = logging.StreamHandler()
         # 定义handler的输出格式
@@ -34,11 +38,15 @@ class Logger:
         self.logger.setLevel(logging.INFO)
 
 
-log_path = os.path.join(CommonConf.LOG_DIR, CommonUtil.timestamp_format(format="%Y%m%d")+'-tianxian.log')
+log_path = os.path.join(CommonConf.LOG_DIR, 'tianxian.log')
 
 logger = Logger("tianxian", log_path).logger
 
 
 if __name__ == "__main__":
-    logger.info("222222222222222")
-    logger.error("333333333333333")
+    import time
+    count = 0
+    while True:
+        logger.info("{}".format(count))
+        count += 1
+        time.sleep(3)

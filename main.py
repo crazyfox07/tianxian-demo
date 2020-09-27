@@ -1,3 +1,5 @@
+import time
+
 import uvicorn
 import os
 import traceback
@@ -61,15 +63,12 @@ def init_scheduler():
 
     scheduler.configure(jobstores=jobstores, executors=executors)
 
-    # scheduler.add_job(ThirdEtcApi.my_job1, trigger='cron', minute="*/2")
+    # scheduler.add_job(ThirdEtcApi.my_job1, trigger='cron', minute="*/2", max_instances=2)
     # scheduler.add_job(ThirdEtcApi.my_job2, trigger='cron', minute="*/5")
     # scheduler.add_job(ThirdEtcApi.download_blacklist_base, trigger='cron', hour='1')
     # scheduler.add_job(ThirdEtcApi.download_blacklist_incre, trigger='cron', hour='*/1')
-    # scheduler.add_job(ThirdEtcApi.reupload_etc_deduct_from_db, trigger='cron', hour='*/1')
-    # scheduler.add_job(RsuStatus.timing_update_rsu_status_list, trigger='cron', second='*/30',
-    #                   kwargs={'callback': ThirdEtcApi.tianxian_heartbeat})
-    # scheduler.add_job(ThirdEtcApi.tianxian_heartbeat, trigger='cron', second='*/20')
-    scheduler.add_job(RsuStatus.monitor_rsu_heartbeat, trigger='cron', second='*/20',
+    scheduler.add_job(ThirdEtcApi.reupload_etc_deduct_from_db, trigger='cron', hour='*/1')
+    scheduler.add_job(RsuStatus.monitor_rsu_heartbeat, trigger='cron', second='*/30',
                       kwargs={'callback': ThirdEtcApi.tianxian_heartbeat})
     logger.info("启动调度器...")
 
@@ -88,10 +87,15 @@ def etc_fee_deduction(body: OBUModel):
     :param body:
     :return:
     """
-    if CommonConf.ETC_CONF_DICT['debug'] == 'true':
-        body.deduct_amount = 0.01
+
+    body.recv_time = time.time()
     try:
-        result = EtcToll.toll(body)
+        CommonConf.EXECUTOR.submit(EtcToll.etc_toll_by_thread, body)
+        result = dict(flag=True,
+                      errorCode='',
+                      errorMessage='',
+                      data=None)
+
     except:
         logger.error(traceback.format_exc())
         result = dict(flag=False,

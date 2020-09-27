@@ -21,6 +21,7 @@ class ETCFeeDeductInfoOrm(Base):
     __tablename__ = 'etc_fee_deduct_info'
     # TODO 注意添加到表中的数据是否为都相同
     id = Column('id', String(32), primary_key=True)
+    trans_order_no = Column('trans_order_no', String(32), unique=True)
     etc_info = Column('etc_info', String(1024))
     upload_flag = Column('upload_flag', SmallInteger)
     upload_fail_count = Column('upload_fail_count', Integer)
