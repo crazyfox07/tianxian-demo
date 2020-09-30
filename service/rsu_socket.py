@@ -14,10 +14,10 @@ import traceback
 from func_timeout import func_set_timeout
 
 from common.config import CommonConf, StatusFlagConfig
-from common.db_client import DBClient
+from common.db_client import DBClient, create_db_session
 from common.log import logger
 from common.utils import CommonUtil
-from model.db_orm import db_session, ETCFeeDeductInfoOrm
+from model.db_orm import ETCFeeDeductInfoOrm
 from model.obu_model import OBUModel
 from service.command_receive_set import CommandReceiveSet
 from service.command_send_set import CommandSendSet
@@ -153,7 +153,7 @@ class RsuSocket(object):
                 # 可能由于退出异常导致elf.monitor_rsu_status_on一直为False
                 self.monitor_rsu_status_on = True
 
-    @func_set_timeout(CommonConf.FUNC_TIME_OUT-2)
+    @func_set_timeout(CommonConf.FUNC_TIME_OUT - 2)
     def recv_msg(self):
         # 接收数据
         msg_bytes = self.socket_client.recv(1024)
@@ -174,6 +174,7 @@ class RsuSocket(object):
         :return:
         """
         current_time = time.time()
+        logger.info('==========================================开始扣费==========================================')
         logger.info('最新obu检查时间差：{}'.format(current_time - self.detect_obu_time_latest))
         # if current_time - self.detect_obu_time_latest > CommonConf.ETC_CONF_DICT['detect_obu_time_latest_diff']:
         #
@@ -196,6 +197,9 @@ class RsuSocket(object):
                 return dict(flag=False,
                             data=None,
                             error_msg="没有搜索到obu")
+            logger.info('收到obu返回的数据,睡眠 {} s'.format(CommonConf.OBU_COMMAND_WAIT_TIME))
+            # 等待几毫秒
+            time.sleep(CommonConf.OBU_COMMAND_WAIT_TIME)
 
             msg_str = msg_bytes.hex()  # 字节转十六进制
             logger.info('接收数据： {}'.format(repr(msg_str)))
@@ -203,6 +207,10 @@ class RsuSocket(object):
             if msg_str[6:8] == 'b2':
                 if msg_str[8:24] == 'fe01fe01fe01fe01':  # 'fe01fe01fe01fe01' 表示心跳
                     logger.info('心跳')
+                elif msg_str[68:70] == '80':
+                    return dict(flag=False,
+                                data=None,
+                                error_msg='检测到obu卡没有插好')
                 else:
                     info_b2 = self.command_recv_set.parse_b2(msg_str)  # 解析b2指令
                     # 电子标签mac地址
@@ -233,13 +241,14 @@ class RsuSocket(object):
                         continue
                     # 再次获取c1指令并发送
                     c1 = CommandSendSet.combine_c1(obuid, obu_div_factor=self.rsu_conf['obu_div_factor'])
-                    # logger.info('b3后发送c1指令：%s' % (c1,))
+                    logger.info('b3后发送c1指令：%s' % (c1,))
                     self.socket_client.send(bytes.fromhex(c1))
                 else:  # 状态执行码不正常，发送c2指令，终止交易
                     c2 = CommandSendSet.combine_c2(obuid, stop_type='01')
                     # logger.info('发送c2指令，终止交易:  %s' % (c2,))
                     self.socket_client.send(bytes.fromhex(c2))
                     return dict(flag=False,
+                                data=None,
                                 error_msg='终止交易')
             # b4 速通卡信息帧
             elif msg_str[6:8] == 'b4':
@@ -258,8 +267,12 @@ class RsuSocket(object):
                                                    reserved='00000000',
                                                    deduct_amount=deduct_amount, purchase_time=purchase_time,
                                                    station=station)
-                    logger.info('发送c6指令，消费交易，出口消费写过站: {}， 其中扣除费用{}'.format(c6, obu_body.deduct_amount))
+                    logger.info('b4后发送c6指令，消费交易，出口消费写过站: {}， 其中扣除费用{}'.format(c6, obu_body.deduct_amount))
                     self.socket_client.send(bytes.fromhex(c6))
+                else:
+                    return dict(flag=False,
+                                data=None,
+                                error_msg='b4指令有问题')
             # b5 交易信息帧，表示此次交易成功结束
             elif msg_str[6:8] == 'b5':
                 if msg_str[16: 18] == '00':  # 状态执行码，00说明正常
@@ -271,6 +284,10 @@ class RsuSocket(object):
                     self.etc_charge_flag = True
                     self.monitor_rsu_status_on = True  # 打开心跳检测
                     return self.command_recv_set
+                else:
+                    return dict(flag=False,
+                                data=None,
+                                error_msg='b5指令有问题')
             elif not msg_str:
                 logger.error('接收到的指令为空')
                 self.monitor_rsu_status_on = True  # 打开心跳检测
@@ -308,7 +325,7 @@ class RsuSocket(object):
                       data=None,
                       error_msg=None)
         # TODO 待待删打印信息
-        self.command_recv_set.print_obu_info()
+        # self.command_recv_set.print_obu_info()
         #  判断card_net和card_sn 物理卡号是否存在于黑名单中
         card_sn_in_blacklist_flag, error_msg = self.card_sn_in_blacklist()
         # 物理卡号存在于黑名单中直接返回
@@ -327,6 +344,10 @@ class RsuSocket(object):
         balance = self.command_recv_set.info_b5['CardBalance']
         # 交易前余额 1999918332 单位分
         trans_before_balance = self.command_recv_set.info_b4['CardRestMoney']
+        if CommonConf.ETC_CONF_DICT['debug'] == 'true':
+            deduct_amount = 0.01
+        else:
+            deduct_amount = body.deduct_amount
         # 卡片发行信息
         issuer_info = self.command_recv_set.info_b4['IssuerInfo']
         # ETC 卡片类型（22:储值卡；23:记账卡）, 位于issuer_info的16,17位， 16进制形式，需要转为10进制
@@ -348,7 +369,7 @@ class RsuSocket(object):
                       # self.command_recv_set.info_b4['CardID'],  # "1030230218354952",ETC 支付时与卡物理号一致；非 ETC 时上传车牌号
                       card_type=card_type,  # "23",  # ETC 卡片类型（22:储值卡；23:记账卡）
                       charging_type="0",  # 扣费方式(0:天线 1:刷卡器)
-                      deduct_amount=CommonUtil.yuan_to_fen(body.deduct_amount),  # 扣款金额
+                      deduct_amount=CommonUtil.yuan_to_fen(deduct_amount),  # 扣款金额
                       device_no=self.rsu_conf['device_no'],  # 设备号
                       device_type=self.rsu_conf['device_type'],  # 设备类型（0:天线；1:刷卡器；9:其它）
                       discount_amount=CommonUtil.yuan_to_fen(body.discount_amount),  # 折扣金额
@@ -367,7 +388,8 @@ class RsuSocket(object):
                       serial_number=self.command_recv_set.info_b2['SerialNumber'],  # 合同序列号"340119126C6AFEDE"
                       tac=self.command_recv_set.info_b5['TAC'],  # 交易认证码
                       terminal_id=self.command_recv_set.info_b5['PSAMNo'],  # 终端编号
-                      trans_before_balance=CommonUtil.hex_to_etcfee(trans_before_balance, unit='fen'), # 交易前余额 1999918332 单位分
+                      trans_before_balance=CommonUtil.hex_to_etcfee(trans_before_balance, unit='fen'),
+                      # 交易前余额 1999918332 单位分
                       trans_order_no=body.trans_order_no,  # 交易订单号 "6711683258167489287"
                       trans_type=self.command_recv_set.info_b5['TransType'],  # 交易类型（06:传统；09:复合）
                       vehicle_type=str(int(self.command_recv_set.info_b3['VehicleClass']))  # 收费车型
@@ -383,6 +405,8 @@ class RsuSocket(object):
         if res_etc_deduct_notify_flag:
             # 接收到强哥返回值后，上传etc扣费数据
             upload_flag, upload_fail_count = ThirdEtcApi.etc_deduct_upload(etc_deduct_info_json)
+            db_engine, db_session = create_db_session(sqlite_dir=CommonConf.SQLITE_DIR,
+                                                      sqlite_database='etc_deduct.sqlite')
             # etc_deduct_info_json入库
             DBClient.add(db_session=db_session,
                          orm=ETCFeeDeductInfoOrm(id=CommonUtil.random_str(32).lower(),

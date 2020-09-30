@@ -69,7 +69,7 @@ def init_scheduler():
     # scheduler.add_job(ThirdEtcApi.download_blacklist_incre, trigger='cron', hour='*/1')
     scheduler.add_job(ThirdEtcApi.reupload_etc_deduct_from_db, trigger='cron', hour='*/1')
     scheduler.add_job(RsuStatus.monitor_rsu_heartbeat, trigger='cron', second='*/30',
-                      kwargs={'callback': ThirdEtcApi.tianxian_heartbeat})
+                      kwargs={'callback': ThirdEtcApi.tianxian_heartbeat}, max_instances=2)
     logger.info("启动调度器...")
 
     scheduler.start()

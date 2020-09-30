@@ -60,6 +60,8 @@ class CommonConf(object):
     RSU_SOCKET_STORE_DICT = dict()
     # 创建线程池
     EXECUTOR = ThreadPoolExecutor(max_workers=3)
+    # wait_time_between_command
+    OBU_COMMAND_WAIT_TIME = ETC_CONF_DICT['obu']['wait_time_between_command']
 
 
 class StatusFlagConfig(Enum):

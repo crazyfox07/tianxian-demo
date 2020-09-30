@@ -10,36 +10,40 @@
 2. 运行exe2service.bat文件
 3. 启动服务
    ```
-   net start MyEtcService
+   net start EtcPayService
    ```
 4. 停止服务
    ```
-   net stop MyEtcService
+   net stop EtcPayService
    ```
 5. 删除服务
    ```
-   方法一： sc delete MyEtcService
-   方法二： E:\BaiduNetdiskDownload\instsrv+srvany\instsrv.exe MyEtcService remove
+   方法一： sc delete EtcPayService
+   方法二： E:\BaiduNetdiskDownload\instsrv+srvany\instsrv.exe EtcPayService remove
+   ```
+6. 查看服务
+   ```
+   运行 services.msc 打开服务查看器
    ```
 ##### 方法2：
 1. instsrv.exe和srvany.exe使用全路径
    ```
-   E:\BaiduNetdiskDownload\instsrv+srvany\instsrv.exe MyEtcService E:\BaiduNetdiskDownload\instsrv+srvany\srvany.exe
+   E:\BaiduNetdiskDownload\instsrv+srvany\instsrv.exe EtcPayService E:\BaiduNetdiskDownload\instsrv+srvany\srvany.exe
    ```
    
-2. 双击MyEtcService.reg文件，导入注册表
+2. 双击 EtcPayService.reg 文件，导入注册表
 3. 启动服务
    ```
-   net start MyEtcService
+   net start EtcPayService
    ```
 4. 停止服务
    ```
-   net stop MyEtcService
+   net stop EtcPayService
    ```
 5. 删除服务
    ```
-   方法一： sc delete MyEtcService
-   方法二： E:\BaiduNetdiskDownload\instsrv+srvany\instsrv.exe MyEtcService remove
+   方法一： sc delete EtcPayService
+   方法二： E:\BaiduNetdiskDownload\instsrv+srvany\instsrv.exe EtcPayService remove
 
    ```
    

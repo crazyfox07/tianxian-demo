@@ -71,6 +71,21 @@ class CommandSendSet(object):
         return c2
 
     @staticmethod
+    def combine_c4(control_type='00'):
+        """
+        开关天线指令
+        :param control_type: 00-关天线   01-开天线
+        :return:
+        """
+        rsctl = CommonUtil.get_rsctl()
+        cmd_type = 'c4'  # 指令代码，此处取值c1
+        c6 = ''.join([CommonConf.COMMAND_BEGIN_FLAG, rsctl, cmd_type, control_type])
+        # 获取bcc校验值
+        bcc = CommonUtil.bcc_xor(c6)
+        c6 = c6 + bcc + CommonConf.COMMAND_END_FLAG
+        return c6
+
+    @staticmethod
     def combine_c6(obu_id, card_div_factor, reserved, deduct_amount, purchase_time, station):
         """
         组合c6指令，该指令只对ETC天线发送过来的正常b4帧回应有效，消费交易指令，出口消费写过站

@@ -2,14 +2,14 @@ dev_code: '00000001'  # 设备编号，运行本代码的机器编号，非天�
 etc:
   - lane_num: '002'   # 车道号
     park_code: '371183'  # 停车场编号
-    ip: '192.168.1.69'  # 天线ip
+    ip: '192.168.0.69'  # 天线ip
     port: 60001   # 天线端口
     lane_mode: '04'   # 车道工作模式
     trans_mode: '01'  # 交易模式
     wait_time: '02'  # 最小重读时间
     pll_channel_id: '00'  # 信道号
     tx_power: 8  # 天线功率，十进制
-    obu_div_factor: 'cdf2bcafcdf2bcaf'  # 'c9bdb6abc9bdb6ab' # 山东
+    obu_div_factor: 'c9bdb6abc9bdb6ab' #  'cdf2bcafcdf2bcaf'  # 山东
     device_no: "lanneng - 3202001001"# 设备号 32位
     device_type: "0"# 设备类型（0:天线；1:刷卡器；9:其它）
     sn: 'soulin-212-1910-010'  # 天线sn编号
@@ -31,8 +31,11 @@ thirdApi:  # 第三方接口
   public_key_etc: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAhfI4hB2k7ay9ikqAWgWXRoafvgSrf69DPR4jA+jAFZ7GsO4bBLIufN1EhYWbJJVEYBparx3PycJCRq+XoAEn9kl0TxApHS9VQMf1F/hFeoZ8d6XZaqT64DREqcnWPa1Q+oFn0Bzmd06Dt3JLnD+9C9DXHXlX9GlirwNr3WkHO4No7SapkYOdJjwJWS3oLVI0P2yFpcO51GN2NwcLl99/S92Jd461i06qlugEtrDs3UDOdOh0Di4JtersWBWJrweYV4c+DFHE6ZGsOvwf7BeBZgwz05s5uWQp1dlNgWwOrV0Yi4/dnDoEHz9UYSuceGXNqNufSBqiaviJu2p2SMzDrwIDAQAB'
   etc_deduct_notify_url:  'http://192.168.1.109:9000/park/etcPayDetail/' # etc扣费下发url
 
+obu:
+  wait_time_between_command: 0.005 # obu命令之间的等待时间
+
 debug: 'true'  # debug位true模式下扣费一分
-func_time_out: 5  # 方法超时时间， 单位秒
+func_time_out: 6  # 方法超时时间， 单位秒
 socket_time_out: 0.5 # socket连接超时设置， 单位秒
 detect_obu_time_latest_diff: 1  # 如果检测到obu的时间距离第三方调用etc接口扣费时间不超detect_obu_time_latest_diff秒,则启用etc扣费，否则禁用
 etc_heartbeat_time_out: 150 # 心跳超时时间，单位秒

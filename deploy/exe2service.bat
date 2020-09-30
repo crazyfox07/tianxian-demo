@@ -1,7 +1,7 @@
 :: 当前bat所在目录
 set current_path=%cd%
 :: 服务名称
-set service_name=MyEtcService
+set service_name=EtcPayService
 :: exe所在目录
 set prog_path=%current_path%\..
 :: exe名称
