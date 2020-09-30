@@ -414,6 +414,8 @@ class RsuSocket(object):
                                                  etc_info=etc_deduct_info_json,
                                                  upload_flag=upload_flag,
                                                  upload_fail_count=upload_fail_count))
+            db_session.close()
+            db_engine.dispose()
 
         # 清除收集到的b2，b3, b4, b5
         self.command_recv_set.clear_info_b2345()
