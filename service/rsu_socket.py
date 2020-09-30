@@ -200,6 +200,7 @@ class RsuSocket(object):
             logger.info('收到obu返回的数据,睡眠 {} s'.format(CommonConf.OBU_COMMAND_WAIT_TIME))
             # 等待几毫秒
             time.sleep(CommonConf.OBU_COMMAND_WAIT_TIME)
+            # 指令转义
             msg_str = msg_bytes.hex().replace('fe01', 'ff').replace('fe00', 'fe')  # 字节转十六进制
             logger.info('接收数据： {}'.format(repr(msg_str)))
             # b2 电子标签信息帧

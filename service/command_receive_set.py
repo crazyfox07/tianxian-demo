@@ -19,7 +19,7 @@ class CommandReceiveSet(object):
         :return:
         """
         # 接收数据时 'fe01'合并为'ff', 'fe00'合并为'fe'
-        b0 = b0.replace('fe01', 'ff').replace('fe00', 'fe')
+        # b0 = b0.replace('fe01', 'ff').replace('fe00', 'fe')
         self.info_b0['RSCTL'] = b0[4: 6]  # 数据帧序列号
         self.info_b0['FrameType'] = b0[6: 8]  # 数据帧类型标识
         self.info_b0['RSUStatus'] = b0[8: 10]  # ETC天线主状态参数：0x00表示正常，否则表示异常
@@ -82,7 +82,7 @@ class CommandReceiveSet(object):
         :return:
         """
         # 接收数据时 'fe01'合并为'ff', 'fe00'合并为'fe'
-        b4 = b4.replace('fe01', 'ff').replace('fe00', 'fe')
+        # b4 = b4.replace('fe01', 'ff').replace('fe00', 'fe')
         self.info_b4['RSCTL'] = b4[4: 6]  # 数据帧序列号
         self.info_b4['FrameType'] = b4[6: 8]  # 数据帧类型标识
         self.info_b4['OBUID'] = b4[8: 16]  # 电子标签MAC地址
@@ -106,7 +106,7 @@ class CommandReceiveSet(object):
         :return:
         """
         # 接收数据时 'fe01'合并为'ff', 'fe00'合并为'fe'
-        b5 = b5.replace('fe01', 'ff').replace('fe00', 'fe')
+        # b5 = b5.replace('fe01', 'ff').replace('fe00', 'fe')
         self.info_b5['RSCTL'] = b5[4: 6]  # 数据帧序列号
         self.info_b5['FrameType'] = b5[6: 8]  # 数据帧类型标识
         self.info_b5['OBUID'] = b5[8: 16]  # 电子标签MAC地址
