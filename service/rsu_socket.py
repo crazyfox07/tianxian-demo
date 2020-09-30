@@ -133,9 +133,9 @@ class RsuSocket(object):
                 except:
                     logger.error('接收心跳数据超时：{}'.format(traceback.format_exc()))
                     continue
-                msg_str = msg_bytes.hex()  # 字节转十六进制
+                msg_str = msg_bytes.hex().replace('fe01', 'ff').replace('fe00', 'fe')  # 字节转十六进制
                 logger.info('接收天线指令：{}'.format(msg_str))
-                if msg_str.find('b2fe01fe01fe01fe01') != -1:
+                if msg_str.find('b2ffffffff') != -1:
                     # 更新心跳时间
                     self.rsu_heartbeat_time = datetime.datetime.now()
                     logger.info(thread_name + ': 心跳： {}'.format(msg_str))
@@ -200,12 +200,11 @@ class RsuSocket(object):
             logger.info('收到obu返回的数据,睡眠 {} s'.format(CommonConf.OBU_COMMAND_WAIT_TIME))
             # 等待几毫秒
             time.sleep(CommonConf.OBU_COMMAND_WAIT_TIME)
-
-            msg_str = msg_bytes.hex()  # 字节转十六进制
+            msg_str = msg_bytes.hex().replace('fe01', 'ff').replace('fe00', 'fe')  # 字节转十六进制
             logger.info('接收数据： {}'.format(repr(msg_str)))
             # b2 电子标签信息帧
             if msg_str[6:8] == 'b2':
-                if msg_str[8:24] == 'fe01fe01fe01fe01':  # 'fe01fe01fe01fe01' 表示心跳
+                if msg_str[8:16] == 'ffffffff':  # 'ffffffff' 表示心跳
                     logger.info('心跳')
                 elif msg_str[68:70] == '80':
                     return dict(flag=False,
