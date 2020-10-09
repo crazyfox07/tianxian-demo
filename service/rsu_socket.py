@@ -185,6 +185,9 @@ class RsuSocket(object):
         # self.etc_charge_flag=True表示交易成功，self.etc_charge_flag=False表示交易失败
         self.etc_charge_flag = False
         obuid = None
+        error_result = dict(flag=False,
+                            data=None,
+                            error_msg="error")
         # 设置超时时间
         while True:
             # 接收数据
@@ -194,9 +197,8 @@ class RsuSocket(object):
             except:
                 logger.error('搜索obu超时')
                 self.monitor_rsu_status_on = True  # 打开心跳检测
-                return dict(flag=False,
-                            data=None,
-                            error_msg="没有搜索到obu")
+                error_result['error_msg'] = '没有搜索到obu'
+                return error_result
             logger.info('收到obu返回的数据,睡眠 {} s'.format(CommonConf.OBU_COMMAND_WAIT_TIME))
             # 等待几毫秒
             time.sleep(CommonConf.OBU_COMMAND_WAIT_TIME)
@@ -208,11 +210,17 @@ class RsuSocket(object):
                 if msg_str[8:16] == 'ffffffff':  # 'ffffffff' 表示心跳
                     logger.info('心跳')
                 elif msg_str[68:70] == '80':
-                    return dict(flag=False,
-                                data=None,
-                                error_msg='检测到obu卡没有插好')
+                    error_result['error_msg'] = '检测到obu卡没有插好'
+                    return error_result
                 else:
                     info_b2 = self.command_recv_set.parse_b2(msg_str)  # 解析b2指令
+                    # 过期日期
+                    data_of_expire = self.command_recv_set.info_b2['DataOfExpire']
+                    # 当前日期
+                    data_of_now = CommonUtil.timestamp_format(int(time.time()), '%Y%m%d')
+                    if data_of_now > data_of_expire:
+                        error_result['error_msg'] = '过期日期：{}'.format(data_of_expire)
+                        return error_result
                     # 电子标签mac地址
                     obuid = info_b2['OBUID']
                     # 获取c1指令
@@ -233,9 +241,8 @@ class RsuSocket(object):
                         error_msg = "车牌号或车颜色不匹配： 监控获取的车牌号：%s, 车颜色：%s; obu获取的车牌号：%s,车颜色：%s" % (
                             obu_body.plate_no, obu_body.plate_color_code, plate_no, obu_plate_color)
                         logger.error(error_msg)
-                        return dict(flag=False,
-                                    data=None,
-                                    error_msg=error_msg)
+                        error_result['error_msg'] = error_msg
+                        return error_result
                     if obuid is None:  # 如果没有获取到obuid，继续
                         logger.error('obuid is none =====================+++++++++++++++++++')
                         continue
@@ -247,9 +254,8 @@ class RsuSocket(object):
                     c2 = CommandSendSet.combine_c2(obuid, stop_type='01')
                     # logger.info('发送c2指令，终止交易:  %s' % (c2,))
                     self.socket_client.send(bytes.fromhex(c2))
-                    return dict(flag=False,
-                                data=None,
-                                error_msg='终止交易')
+                    error_result['error_msg'] = '终止交易'
+                    return error_result
             # b4 速通卡信息帧
             elif msg_str[6:8] == 'b4':
                 if msg_str[16: 18] == '00':  # 状态执行码，00说明后续速通卡信息合法有效
@@ -270,9 +276,8 @@ class RsuSocket(object):
                     logger.info('b4后发送c6指令，消费交易，出口消费写过站: {}， 其中扣除费用{}'.format(c6, obu_body.deduct_amount))
                     self.socket_client.send(bytes.fromhex(c6))
                 else:
-                    return dict(flag=False,
-                                data=None,
-                                error_msg='b4指令有问题')
+                    error_result['error_msg'] = 'b4指令有问题'
+                    return error_result
             # b5 交易信息帧，表示此次交易成功结束
             elif msg_str[6:8] == 'b5':
                 if msg_str[16: 18] == '00':  # 状态执行码，00说明正常
@@ -285,9 +290,8 @@ class RsuSocket(object):
                     self.monitor_rsu_status_on = True  # 打开心跳检测
                     return self.command_recv_set
                 else:
-                    return dict(flag=False,
-                                data=None,
-                                error_msg='b5指令有问题')
+                    error_result['error_msg'] = 'b5指令有问题'
+                    return error_result
             elif not msg_str:
                 logger.error('接收到的指令为空')
                 self.monitor_rsu_status_on = True  # 打开心跳检测
