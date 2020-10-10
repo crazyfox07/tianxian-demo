@@ -15,12 +15,12 @@ etc:
     sn: 'soulin-212-1910-010'  # 天线sn编号
 
 # 目前还没有用到mysql数据库
-mysql:
-  host: '192.168.1.100'
-  port: 3306
-  username: "test"
-  passworld: "aabbcc"
-  db_name: "test01"
+#mysql:
+#  host: '192.168.1.100'
+#  port: 3306
+#  username: "test"
+#  passworld: "aabbcc"
+#  db_name: "test01"
 
 sqlite_dir: 'D:\\rsucontroller\\sqlite_db'
 
@@ -34,7 +34,7 @@ thirdApi:  # 第三方接口
 obu:
   wait_time_between_command: 0.005 # obu命令之间的等待时间
 
-debug: 'true'  # debug位true模式下扣费一分
+debug: 'false'  # debug位true模式下扣费一分
 func_time_out: 6  # 方法超时时间， 单位秒
 socket_time_out: 0.5 # socket连接超时设置， 单位秒
 detect_obu_time_latest_diff: 1  # 如果检测到obu的时间距离第三方调用etc接口扣费时间不超detect_obu_time_latest_diff秒,则启用etc扣费，否则禁用

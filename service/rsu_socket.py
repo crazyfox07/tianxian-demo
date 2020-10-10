@@ -175,12 +175,9 @@ class RsuSocket(object):
         """
         current_time = time.time()
         logger.info('==========================================开始扣费==========================================')
+        logger.info('订单号：{}， 车牌号：{}， 车牌颜色：{}'.format(
+            obu_body.trans_order_no, obu_body.plate_no, obu_body.plate_color_code))
         logger.info('最新obu检查时间差：{}'.format(current_time - self.detect_obu_time_latest))
-        # if current_time - self.detect_obu_time_latest > CommonConf.ETC_CONF_DICT['detect_obu_time_latest_diff']:
-        #
-        #     return dict(flag=False,
-        #                 data=None,
-        #                 error_msg="没有检测到obu")
         self.monitor_rsu_status_on = False  # 关闭心跳检测
         # self.etc_charge_flag=True表示交易成功，self.etc_charge_flag=False表示交易失败
         self.etc_charge_flag = False
@@ -233,7 +230,11 @@ class RsuSocket(object):
                     self.command_recv_set.parse_b3(msg_str)  # 解析b3指令
                     # TODO 车牌号，车颜色 需要校验， 不匹配需要返回
                     plate_no = self.command_recv_set.info_b3['VehicleLicencePlateNumber']
-                    plate_no = CommonUtil.parse_plate_code(plate_no).replace('测A', '鲁L')
+                    try:
+                        plate_no = CommonUtil.parse_plate_code(plate_no).replace('测A', '鲁L')
+                    except:
+                        logger.error(traceback.format_exc())
+                        logger.error('车牌号解析错误：{}'.format(repr(plate_no)))
                     # 车牌颜色
                     obu_plate_color = str(
                         int(self.command_recv_set.info_b3['VehicleLicencePlateColor'], 16))  # obu车颜色
