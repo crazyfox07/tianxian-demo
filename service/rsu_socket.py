@@ -197,19 +197,16 @@ class RsuSocket(object):
                 error_result['error_msg'] = '没有搜索到obu'
                 return error_result
             logger.info('收到obu返回的数据,睡眠 {} s'.format(CommonConf.OBU_COMMAND_WAIT_TIME))
-            # 等待几毫秒
-            time.sleep(CommonConf.OBU_COMMAND_WAIT_TIME)
             # 指令转义
             msg_str = msg_bytes.hex().replace('fe01', 'ff').replace('fe00', 'fe')  # 字节转十六进制
             logger.info('接收数据： {}'.format(repr(msg_str)))
+            # 等待几毫秒
+            time.sleep(CommonConf.OBU_COMMAND_WAIT_TIME)
             # b2 电子标签信息帧
             if msg_str[6:8] == 'b2':
                 if msg_str[8:16] == 'ffffffff':  # 'ffffffff' 表示心跳
                     logger.info('心跳')
-                elif msg_str[68:70] == '80':
-                    error_result['error_msg'] = '检测到obu卡没有插好'
-                    return error_result
-                else:
+                elif msg_str[68:72] == '2001':
                     info_b2 = self.command_recv_set.parse_b2(msg_str)  # 解析b2指令
                     # 过期日期
                     data_of_expire = self.command_recv_set.info_b2['DataOfExpire']
@@ -224,6 +221,9 @@ class RsuSocket(object):
                     c1 = CommandSendSet.combine_c1(obuid, obu_div_factor=self.rsu_conf['obu_div_factor'])
                     logger.info('b2后发送c1指令：%s' % (c1))
                     self.socket_client.send(bytes.fromhex(c1))
+                else:
+                    error_result['error_msg'] = 'obu卡有问题，obu状态码： {}'.format(msg_str[68:72])
+                    return error_result
             # b3 车辆信息帧
             elif msg_str[6:8] == 'b3':
                 if msg_str[16: 18] == '00':  # obu信息帧状态执行码，取值00正常
