@@ -15,6 +15,7 @@ from model.obu_model import OBUModel
 from service.check_rsu_status import RsuStatus
 from service.etc_toll import EtcToll
 from service.rsu_store import RsuStore
+from service.task_job import TimingOperateRsu
 from service.third_etc_api import ThirdEtcApi
 
 app = FastAPI()
@@ -70,6 +71,8 @@ def init_scheduler():
     scheduler.add_job(ThirdEtcApi.reupload_etc_deduct_from_db, trigger='cron', hour='*/1')
     scheduler.add_job(RsuStatus.monitor_rsu_heartbeat, trigger='cron', second='*/30',
                       kwargs={'callback': ThirdEtcApi.tianxian_heartbeat}, max_instances=2)
+    scheduler.add_job(TimingOperateRsu.turn_off_rsu, trigger='cron', hour='0')
+    scheduler.add_job(TimingOperateRsu.turn_on_rsu, trigger='cron', hour='5')
     logger.info("启动调度器...")
 
     scheduler.start()

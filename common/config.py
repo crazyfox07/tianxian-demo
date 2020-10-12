@@ -69,6 +69,10 @@ class StatusFlagConfig(Enum):
     RSU_FAILURE = 0
     # 天线状态正常
     RSU_NORMAL = 1
+    # 天线开启
+    RSU_ON = 2
+    # 天线关闭
+    RSU_OFF = 3
 
 
 

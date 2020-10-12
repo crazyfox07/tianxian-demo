@@ -34,7 +34,10 @@ class RsuStatus(object):
                                          black_file_version_incr='0'
                                          )
         print('监听心跳。。。。。。。')
+
         for lane_num, rsu_client in CommonConf.RSU_SOCKET_STORE_DICT.items():
+            if rsu_client.rsu_on_or_off == StatusFlagConfig.RSU_OFF:
+                continue
             now = datetime.datetime.now()
             # 假如三分钟没有心跳，则认为天线出故障，并重启socket
             logger.info('距离心跳时间更新：{}s'.format((now - rsu_client.rsu_heartbeat_time).seconds))

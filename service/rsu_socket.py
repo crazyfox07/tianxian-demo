@@ -32,6 +32,8 @@ class RsuSocket(object):
     def __init__(self, lane_num):
         # 天线状态, 默认有故障
         self.rsu_status = StatusFlagConfig.RSU_FAILURE
+        # 天线开关状态
+        self.rsu_on_or_off = StatusFlagConfig.RSU_ON
         # 天线状态监控flag
         self.monitor_rsu_status_on = True
         # 天线心跳的最新时间
@@ -61,6 +63,8 @@ class RsuSocket(object):
         初始化rsu, 初始化耗时大约1s
         :return:
         """
+        # 天线开关开启
+        self.rsu_on_or_off = StatusFlagConfig.RSU_ON
         if 'socket_client' in dir(self):
             del self.socket_client
         # 创建一个客户端的socket对象
@@ -434,6 +438,13 @@ class RsuSocket(object):
         关闭天线
         :return:
         """
+        # 天线开关关闭
+        self.rsu_on_or_off = StatusFlagConfig.RSU_OFF
+        # 关闭天线指令
+        c4 = CommandSendSet.combine_c4('00')
+        logger.info('关闭天线：%s' % (c4))
+        self.socket_client.send(bytes.fromhex(c4))
+        # 关闭socket
         self.socket_client.shutdown(2)
         self.socket_client.close()
 

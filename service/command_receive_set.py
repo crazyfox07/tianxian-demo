@@ -149,3 +149,6 @@ if __name__ == '__main__':
     command_reiv_set = CommandReceiveSet()
     command_reiv_set.parse_b5('ffff48b56a81353e005f4797743737373737372020082711222809613c67b60012000000110000270f7cff')
     pprint(command_reiv_set.info_b5)
+
+    command_reiv_set.parse_b3('ffff58b363f6b6fe00c2b34c3930313530000000000000010037ff')
+    pprint(command_reiv_set.info_b3)
