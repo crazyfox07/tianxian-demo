@@ -56,5 +56,7 @@ class XlapiSignature(object):
 if __name__ == '__main__':
     private_key = CommonConf.ETC_CONF_DICT['thirdApi']['private_key']
     print(private_key)
+    private_key_format = XlapiSignature.format_private_key(private_key)
+    print(private_key_format)
     s = XlapiSignature.to_sign_with_private_key('hello', private_key=private_key)
     print(s)

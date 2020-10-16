@@ -9,8 +9,8 @@ from pydantic import BaseModel
 
 
 class OBUModel2(BaseModel):
-    balance: str  # 交易后余额
-    card_net_no: float  # 网络编号
+    balance: int  # 交易后余额
+    card_net_no: str  # 网络编号
     card_rnd: str  # 卡内随机数
     card_serial_no: str   # 卡内交易序号
     card_sn: str  # 物理卡号

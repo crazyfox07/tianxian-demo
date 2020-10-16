@@ -9,6 +9,7 @@ from common.config import CommonConf
 from common.db_client import create_db_session, DBClient
 from common.http_client import http_session
 from common.log import logger
+from common.sign_verify import XlapiSignature
 from common.utils import CommonUtil
 from model.db_orm import ETCFeeDeductInfoOrm
 from model.obu_model import OBUModel
@@ -28,6 +29,13 @@ def upload_etc_fee_deduction(body: OBUModel2):
     logger.info('===============接收etc扣费上传请求===============')
     logger.info(body.json(ensure_ascii=False))
     params = json.loads(body.json())
+    sign_combine = 'card_net_no:{},card_serial_no:{},card_sn:{},card_type:{},exit_time:{},obu_id:{},park_code:{},' \
+                   'plate_no:{},tac:{}'. format(body.card_net_no, body.card_serial_no, body.card_sn, body.card_type,
+                                                body.exit_time, body.obu_id, body.park_code, body.plate_no, body.tac)
+    print(sign_combine)
+    sign = XlapiSignature.to_sign_with_private_key(
+        text=sign_combine, private_key=CommonConf.ETC_CONF_DICT['thirdApi']['private_key']).decode(encoding='utf8')
+    print(sign)
     etc_deduct_info_dict = {"method": "etcPayUpload",
                             "params": params}
     # 业务编码报文json格式

@@ -135,8 +135,12 @@ class RsuSocket(object):
                 try:
                     msg_bytes = self.etc_heart_recv()
                 except:
-                    logger.error('接收心跳数据超时：{}'.format(traceback.format_exc()))
-                    continue
+                    error_msg = traceback.format_exc()
+                    logger.error('接收心跳数据超时：{}'.format(error_msg))
+                    if error_msg.find('在一个非套接字上尝试了一个操作') != -1:
+                        del self.socket_client
+                        self.init_rsu()
+                        break
                 msg_str = msg_bytes.hex().replace('fe01', 'ff').replace('fe00', 'fe')  # 字节转十六进制
                 logger.info('接收天线指令：{}'.format(msg_str))
                 if msg_str.find('b2ffffffff') != -1:
